@@ -10,68 +10,62 @@ class ProductController extends Controller
     protected $products;
 
     public function __construct(Product $products){
+        $this->middleware('auth:admin')->except('index');
         $this->products = $products;
     }
     public function index()
     {
         $products = $this->products->all();
-        return view('cart.index', compact('products'));
-    }  
-    public function addToCart(Product $product, Request $request)
+        return view('product.index', compact('products'));
+    } 
+    public function adminView(Request $request)
     {
-        $itemToAdd = [
-            'name' => $product->name, 
-            'price' => $product->price, 
-            'id' => $product->id,
-            'qty' => 1
-            ];
-        $cart = \Session::get('cart');
-        $cart_count = \Session::get('cart_count');
-        
-        if ($cart != null) {
-            if(array_key_exists($product->name, $cart)){
-                $cart[$product->name]['qty'] += 1;
-                $cart_count += 1;
-            } else{
-                $cart[$product->name] = $itemToAdd;
-                $cart_count += 1;
-            }
-        } else {
-            $cart = [$product->name => $itemToAdd];
-            $cart_count = 1;
+        $products = $this->products->all();
+        return view('admin.products', compact('products'));
+    } 
+    public function create(Request $request)
+    {
+        $this->validate($request, [
+            'name' => 'required|min:2',
+            'price' => 'required|numeric'
+        ]);
+        $product = Product::create([
+            'name' => $request->name,
+            'price' => $request->price,
+            ]);
+        $imageName = $product->id . '.' . $request->file('image')->getClientOriginalExtension();
+        $request->file('image')->move(base_path() . '/public/images/', $imageName);
+        $img = '/images/' . $imageName;
+        $product->img = $img;
+        $product->save();
+        \Session::flash('message', 'Product Has been successfully Created!');
+        return back();        
+    } 
+    public function delete(Product $product)
+    {
+        $product->delete();
+        return back();        
+    } 
+    public function getEdit(Product $product)
+    {
+        return view('admin.edit-product', compact('product'));
+    }
+    public function postEdit(Product $product, Request $request)
+    {
+        $this->validate($request, [
+            'name' => 'required|min:2',
+            'price' => 'required|numeric'
+        ]);
+        if ($request->file('image')){
+            $imageName = $product->id . '.' . $request->file('image')->getClientOriginalExtension();
+            $request->file('image')->move(base_path() . '/public/images/', $imageName);
+            $img = '/images/' . $imageName;
+            $product->img = $img;
         }
-        \Session::put('cart', $cart);
-        \Session::put('cart_count', $cart_count);
-        return back();
-    }
-
-    public function clear()
-    {
-        \Session::forget('cart');
-        \Session::forget('cart_count');
-        return back();
-    }
-    public function viewCart()
-    {
-        return view('cart/cart', compact('cart'));
-    }
-    public function removeFromCart($item){
-        $cart = \Session::get('cart');
-        $cart_count = \Session::get('cart_count'); 
-        $cart_count -= $cart[$item]['qty'];
-        unset($cart[$item]);
-        \Session::put('cart', $cart);
-        \Session::put('cart_count', $cart_count);
-        return back();
-    }
-    public function updateCart($item, Request $request){
-        $cart = \Session::get('cart');
-        $cart_count = \Session::get('cart_count'); 
-        $cart_count -= $cart[$item]['qty'];
-        $cart[$item]['qty'] = (int)$request->qty;
-        $cart_count += (int)$request->qty;
-        \Session::put('cart', $cart);
-        \Session::put('cart_count', $cart_count);
+        $product->name = $request->name; 
+        $product->price = $request->price;
+        $product->save();
+        \Session::flash('message', 'Product Has been successfully updated!');
         return back();
     }
 }
