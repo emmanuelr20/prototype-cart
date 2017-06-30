@@ -38,3 +38,6 @@ Route::prefix('admin')->group(function(){
     //Route::post('/editproducts', 'ProductController@create');
     Route::get('/', 'AdminController@index')->name('admin.dashboard');
 });
+Auth::routes();
+
+Route::get('/home', 'HomeController@index')->name('home');
