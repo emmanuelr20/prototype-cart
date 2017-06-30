@@ -6,8 +6,6 @@ use App\User;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Foundation\Auth\RegistersUsers;
-use App\models\UserAccount;
-use App\models\Address;
 
 class RegisterController extends Controller
 {
@@ -64,17 +62,10 @@ class RegisterController extends Controller
      */
     protected function create(array $data)
     {
-        $user = User::create([
+        return User::create([
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => bcrypt($data['password']),
         ]);
-        $user_acc_key = strtoupper(str_random(15));
-        $user_acc = new UserAccount(['id_key' => $user_acc_key ]);
-        $user_add = new Address();
-        //dd($user_acc);
-        $user->useraccount()->save($user_acc);
-        $user->useraccount()->save($user_add);
-        return $user;
     }
 }
